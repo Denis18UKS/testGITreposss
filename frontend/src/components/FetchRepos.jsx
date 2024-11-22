@@ -24,7 +24,7 @@ function FetchRepos() {
             const data = await response.json();
             setSelectedRepo(repoName);
             setCommits(data);
-            setIsModalOpen(true);
+            setIsModalOpen(true); // Открытие модального окна
         } catch (error) {
             console.error('Error fetching commits:', error);
         }
@@ -80,22 +80,12 @@ function FetchRepos() {
                                     </a>
                                 </td>
                                 <td>
-                                    {repo.hasCommits ? (
-                                        <button
-                                            onClick={() => fetchCommits(repo.name)}
-                                            className="small-button"
-                                        >
-                                            Показать коммиты
-                                        </button>
-                                    ) : (
-                                        <em className="no-commits">Нет коммитов</em>
-                                    )}
+                                    <button onClick={() => fetchCommits(repo.name)} className="small-button">
+                                        Показать коммиты
+                                    </button>
                                 </td>
                                 <td>
-                                    <button
-                                        onClick={() => downloadRepo(repo.name)}
-                                        className="small-button"
-                                    >
+                                    <button onClick={() => downloadRepo(repo.name)} className="small-button">
                                         Скачать
                                     </button>
                                 </td>
