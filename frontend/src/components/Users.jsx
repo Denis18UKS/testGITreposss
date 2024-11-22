@@ -2,22 +2,25 @@ import React, { useState } from 'react';
 import './styles.css';
 
 const users = [
-    { name: 'Максим', username: 'maksim-github', skills: ['JavaScript', 'React'], avatar: 'Maksim.jpg' },
-    { name: 'Вика', username: 'vika-github', skills: ['HTML', 'CSS'], avatar: 'Vika.jpg' },
-    { name: 'Никита', username: 'nikita-github', skills: ['Python', 'Django'], avatar: 'Nikita.jpg' },
-    { name: 'Алексей', username: 'aleksei-github', skills: ['Java', 'Spring'], avatar: 'Alekssei.jpg' },
+    { name: 'Наташа', username: 'Natalua9', skills: ['Laravel', 'React'], avatar: 'Natalya.jpg' },
+    { name: 'Денис', username: 'Denis18UKS', skills: ['React', 'Node.js'], avatar: 'Denis.jpg' },
+    { name: 'Марат', username: 'Molin1987', skills: ['Laravel', 'PHP'], avatar: 'Marat.jpg' },
+    { name: 'Влад', username: 'AikenOZ', skills: ['Python', 'ИИ'], avatar: 'Alekssei.jpg' },
 ];
 
 function Users() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [repos, setRepos] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [commits, setCommits] = useState([]);
+    const [selectedRepo, setSelectedRepo] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [loadingRepos, setLoadingRepos] = useState(false);
+    const [loadingCommits, setLoadingCommits] = useState(false);
 
-    const handleClick = async (user) => {
+    const fetchRepos = async (user) => {
         setSelectedUser(user);
-        setLoading(true);
+        setLoadingRepos(true);
         setRepos([]);
-
         try {
             const response = await fetch(`https://api.github.com/users/${user.username}/repos`);
             const data = await response.json();
@@ -29,8 +32,32 @@ function Users() {
         } catch (error) {
             console.error('Ошибка при подключении к GitHub API:', error);
         } finally {
-            setLoading(false);
+            setLoadingRepos(false);
         }
+    };
+
+    const fetchCommits = async (repoName) => {
+        setLoadingCommits(true);
+        setCommits([]);
+        try {
+            const response = await fetch(`https://api.github.com/repos/${selectedUser.username}/${repoName}/commits`);
+            const data = await response.json();
+            setSelectedRepo(repoName);
+            setCommits(Array.isArray(data) ? data : []);
+            setIsModalOpen(true);
+        } catch (error) {
+            console.error('Ошибка при получении коммитов:', error);
+            setCommits([]);
+            setIsModalOpen(true);
+        } finally {
+            setLoadingCommits(false);
+        }
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedRepo(null);
+        setCommits([]);
     };
 
     return (
@@ -38,7 +65,7 @@ function Users() {
             <h1>Список пользователей</h1>
             <ul className="users-list">
                 {users.map((user, index) => (
-                    <li key={index} onClick={() => handleClick(user)}>
+                    <li key={index} onClick={() => fetchRepos(user)}>
                         <img src={`./images/users-avatars/${user.avatar}`} alt={`${user.name} avatar`} />
                         <div>
                             <p>{user.name}</p>
@@ -54,21 +81,83 @@ function Users() {
             {selectedUser && (
                 <div className="user-repos">
                     <h2>Репозитории пользователя: {selectedUser.name}</h2>
-                    {loading ? (
-                        <p>Загрузка...</p>
+                    {loadingRepos ? (
+                        <p>Загрузка репозиториев...</p>
                     ) : repos.length > 0 ? (
-                        <ul>
-                            {repos.map((repo) => (
-                                <li key={repo.id}>
-                                    <a href={repo.html_url} target="_blank" rel="noopener noreferrer">
-                                        {repo.name}
-                                    </a>
-                                </li>
-                            ))}
-                        </ul>
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Репозиторий</th>
+                                    <th>Коммиты</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {repos.map((repo) => (
+                                    <tr key={repo.id}>
+                                        <td>
+                                            <a
+                                                href={repo.html_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="repo-link"
+                                            >
+                                                {repo.name}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <button onClick={() => fetchCommits(repo.name)} className="small-button">
+                                                Показать коммиты
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <button
+                                                onClick={() => window.open(`${repo.html_url}/archive/refs/heads/${repo.default_branch}.zip`)}
+                                                className="small-button"
+                                            >
+                                                Скачать
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     ) : (
                         <p>У пользователя нет репозиториев или произошла ошибка.</p>
                     )}
+                </div>
+            )}
+
+            {isModalOpen && (
+                <div className="modal">
+                    <div className="modal-content">
+                        <span className="close-button" onClick={closeModal}>
+                            &times;
+                        </span>
+                        <h2>Репозиторий: {selectedRepo}</h2>
+                        {loadingCommits ? (
+                            <p>Загрузка коммитов...</p>
+                        ) : commits.length > 0 ? (
+                            <table className="table">
+                                <thead>
+                                    <tr>
+                                        <th>Автор</th>
+                                        <th>Сообщение</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {commits.map((commit, index) => (
+                                        <tr key={index}>
+                                            <td>{commit.commit.author.name}</td>
+                                            <td>{commit.commit.message}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p>Коммитов не найдено или произошла ошибка.</p>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
