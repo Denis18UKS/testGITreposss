@@ -6,6 +6,7 @@ function FetchRepos() {
     const [repos, setRepos] = useState([]);
     const [commits, setCommits] = useState([]);
     const [selectedRepo, setSelectedRepo] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const fetchRepos = async () => {
         try {
@@ -23,9 +24,16 @@ function FetchRepos() {
             const data = await response.json();
             setSelectedRepo(repoName);
             setCommits(data);
+            setIsModalOpen(true);
         } catch (error) {
             console.error('Error fetching commits:', error);
         }
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedRepo(null);
+        setCommits([]);
     };
 
     const downloadRepo = async (repoName) => {
@@ -72,12 +80,22 @@ function FetchRepos() {
                                     </a>
                                 </td>
                                 <td>
-                                    <button onClick={() => fetchCommits(repo.name)} className="small-button">
-                                        Показать коммиты
-                                    </button>
+                                    {repo.hasCommits ? (
+                                        <button
+                                            onClick={() => fetchCommits(repo.name)}
+                                            className="small-button"
+                                        >
+                                            Показать коммиты
+                                        </button>
+                                    ) : (
+                                        <em className="no-commits">Нет коммитов</em>
+                                    )}
                                 </td>
                                 <td>
-                                    <button onClick={() => downloadRepo(repo.name)} className="small-button">
+                                    <button
+                                        onClick={() => downloadRepo(repo.name)}
+                                        className="small-button"
+                                    >
                                         Скачать
                                     </button>
                                 </td>
@@ -87,26 +105,30 @@ function FetchRepos() {
                 </table>
             )}
 
-            {selectedRepo && commits.length > 0 && (
-                <div className="commits-container">
-                    <h2 className="subtitle">Commits for {selectedRepo}</h2>
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>Автор</th>
-                                <th>Сообщение</th>
-                                <th>test</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {commits.map((commit, index) => (
-                                <tr key={index}>
-                                    <td>{commit.commit.author.name}</td>
-                                    <td>{commit.commit.message}</td>
+            {isModalOpen && (
+                <div className="modal">
+                    <div className="modal-content">
+                        <span className="close-button" onClick={closeModal}>
+                            &times;
+                        </span>
+                        <h2>Репозиторий: {selectedRepo}</h2>
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Автор</th>
+                                    <th>Сообщение</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {commits.map((commit, index) => (
+                                    <tr key={index}>
+                                        <td>{commit.commit.author.name}</td>
+                                        <td>{commit.commit.message}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>
