@@ -12,10 +12,12 @@ function Users() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [repos, setRepos] = useState([]);
     const [commits, setCommits] = useState([]);
+    const [branches, setBranches] = useState([]);
     const [selectedRepo, setSelectedRepo] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loadingRepos, setLoadingRepos] = useState(false);
     const [loadingCommits, setLoadingCommits] = useState(false);
+    const [loadingBranches, setLoadingBranches] = useState(false);
 
     const fetchRepos = async (user) => {
         setSelectedUser(user);
@@ -54,6 +56,24 @@ function Users() {
         }
     };
 
+    const fetchBranches = async (repoName) => {
+        setLoadingBranches(true);
+        setBranches([]);
+        try {
+            const response = await fetch(`https://api.github.com/repos/${selectedUser.username}/${repoName}/branches`);
+            const data = await response.json();
+            if (response.ok) {
+                setBranches(data);
+            } else {
+                console.error('Ошибка при получении веток:', data.message);
+            }
+        } catch (error) {
+            console.error('Ошибка при подключении к GitHub API:', error);
+        } finally {
+            setLoadingBranches(false);
+        }
+    };
+
     const closeModal = () => {
         setIsModalOpen(false);
         setSelectedRepo(null);
@@ -89,6 +109,7 @@ function Users() {
                                 <tr>
                                     <th>Репозиторий</th>
                                     <th>Коммиты</th>
+                                    <th>Ветки</th>
                                     <th>Действия</th>
                                 </tr>
                             </thead>
@@ -111,6 +132,11 @@ function Users() {
                                             </button>
                                         </td>
                                         <td>
+                                            <button onClick={() => fetchBranches(repo.name)} className="small-button">
+                                                Показать ветки
+                                            </button>
+                                        </td>
+                                        <td>
                                             <button
                                                 onClick={() => window.open(`${repo.html_url}/archive/refs/heads/${repo.default_branch}.zip`)}
                                                 className="small-button"
@@ -123,7 +149,7 @@ function Users() {
                             </tbody>
                         </table>
                     ) : (
-                        <p>У пользователя нет репозиториев или произошла ошибка.</p>
+                        <p>У пользователя нет репозиториев или превышен лимит запросов</p>
                     )}
                 </div>
             )}
@@ -158,6 +184,17 @@ function Users() {
                             <p>Коммитов не найдено или произошла ошибка.</p>
                         )}
                     </div>
+                </div>
+            )}
+
+            {branches.length > 0 && (
+                <div className="branches">
+                    <h3>Ветки репозитория: {selectedRepo}</h3>
+                    <ul>
+                        {branches.map((branch) => (
+                            <li key={branch.name}>{branch.name}</li>
+                        ))}
+                    </ul>
                 </div>
             )}
         </div>
