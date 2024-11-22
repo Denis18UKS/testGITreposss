@@ -95,6 +95,7 @@ function FetchRepos() {
                             <tr>
                                 <th>Автор</th>
                                 <th>Сообщение</th>
+                                <th>test</th>
                             </tr>
                         </thead>
                         <tbody>
