@@ -7,7 +7,7 @@ function FetchRepos() {
     const [commits, setCommits] = useState([]);
     const [selectedRepo, setSelectedRepo] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
+    const [isLoadingCommits, setIsLoadingCommits] = useState(false);
     const fetchRepos = async () => {
         try {
             const response = await fetch(`http://localhost:5000/api/repos/${username}`);
@@ -19,14 +19,17 @@ function FetchRepos() {
     };
 
     const fetchCommits = async (repoName) => {
+        setIsLoadingCommits(true);
         try {
             const response = await fetch(`http://localhost:5000/api/repos/${username}/${repoName}/commits`);
             const data = await response.json();
             setSelectedRepo(repoName);
-            setCommits(data);
+            setCommits(Array.isArray(data) ? data : []);
             setIsModalOpen(true); // Открытие модального окна
         } catch (error) {
             console.error('Error fetching commits:', error);
+            setCommits([]);
+            setIsModalOpen(true);
         }
     };
 
