@@ -15,6 +15,7 @@ function Users() {
     const [branches, setBranches] = useState([]);
     const [selectedRepo, setSelectedRepo] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalType, setModalType] = useState(''); // 'commits', 'branches', 'files'
     const [loadingRepos, setLoadingRepos] = useState(false);
     const [loadingCommits, setLoadingCommits] = useState(false);
     const [loadingBranches, setLoadingBranches] = useState(false);
@@ -41,6 +42,7 @@ function Users() {
     const fetchCommits = async (repoName) => {
         setLoadingCommits(true);
         setCommits([]);
+        setModalType('commits');
         try {
             const response = await fetch(`https://api.github.com/repos/${selectedUser.username}/${repoName}/commits`);
             const data = await response.json();
@@ -59,11 +61,14 @@ function Users() {
     const fetchBranches = async (repoName) => {
         setLoadingBranches(true);
         setBranches([]);
+        setModalType('branches');
         try {
             const response = await fetch(`https://api.github.com/repos/${selectedUser.username}/${repoName}/branches`);
             const data = await response.json();
             if (response.ok) {
                 setBranches(data);
+                setSelectedRepo(repoName);
+                setIsModalOpen(true);
             } else {
                 console.error('Ошибка при получении веток:', data.message);
             }
@@ -74,10 +79,27 @@ function Users() {
         }
     };
 
+    const fetchFiles = async (repoName) => {
+        setModalType('files');
+        setIsModalOpen(true);
+        try {
+            const response = await fetch(
+                `https://api.github.com/repos/${selectedUser.username}/${repoName}/contents`
+            );
+            const data = await response.json();
+            setSelectedRepo(repoName);
+            setBranches(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Ошибка при получении содержимого репозитория:', error);
+            setBranches([]);
+        }
+    };
+
     const closeModal = () => {
         setIsModalOpen(false);
         setSelectedRepo(null);
         setCommits([]);
+        setBranches([]);
     };
 
     return (
@@ -110,7 +132,9 @@ function Users() {
                                     <th>Репозиторий</th>
                                     <th>Коммиты</th>
                                     <th>Ветки</th>
+                                    <th>Файлы</th>
                                     <th>Действия</th>
+                                    <th>Дата создания</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -137,6 +161,11 @@ function Users() {
                                             </button>
                                         </td>
                                         <td>
+                                            <button onClick={() => fetchFiles(repo.name)} className="small-button">
+                                                Посмотреть файлы
+                                            </button>
+                                        </td>
+                                        <td>
                                             <button
                                                 onClick={() => window.open(`${repo.html_url}/archive/refs/heads/${repo.default_branch}.zip`)}
                                                 className="small-button"
@@ -144,6 +173,7 @@ function Users() {
                                                 Скачать
                                             </button>
                                         </td>
+                                        <td>{new Date(repo.created_at).toLocaleDateString()}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -161,40 +191,87 @@ function Users() {
                             &times;
                         </span>
                         <h2>Репозиторий: {selectedRepo}</h2>
-                        {loadingCommits ? (
-                            <p>Загрузка коммитов...</p>
-                        ) : commits.length > 0 ? (
-                            <table className="table">
-                                <thead>
-                                    <tr>
-                                        <th>Автор</th>
-                                        <th>Сообщение</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {commits.map((commit, index) => (
-                                        <tr key={index}>
-                                            <td>{commit.commit.author.name}</td>
-                                            <td>{commit.commit.message}</td>
+                        {modalType === 'commits' && (
+                            loadingCommits ? (
+                                <p>Загрузка коммитов...</p>
+                            ) : commits.length > 0 ? (
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Автор</th>
+                                            <th>Сообщение</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <p>Коммитов не найдено или произошла ошибка.</p>
+                                    </thead>
+                                    <tbody>
+                                        {commits.map((commit, index) => (
+                                            <tr key={index}>
+                                                <td>{commit.commit.author.name}</td>
+                                                <td>{commit.commit.message}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <p>Коммитов не найдено или произошла ошибка.</p>
+                            )
+                        )}
+                        {modalType === 'branches' && (
+                            loadingBranches ? (
+                                <p>Загрузка веток...</p>
+                            ) : branches.length > 0 ? (
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Имя ветки</th>
+                                            <th>Последний коммит</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {branches.map((branch) => (
+                                            <tr key={branch.name}>
+                                                <td>{branch.name}</td>
+                                                <td>{branch.commit.sha}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <p>Веток не найдено или произошла ошибка.</p>
+                            )
+                        )}
+                        {modalType === 'files' && (
+                            branches.length > 0 ? (
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Имя файла</th>
+                                            <th>Тип</th>
+                                            <th>Ссылка</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {branches.map((file) => (
+                                            <tr key={file.sha}>
+                                                <td>{file.name}</td>
+                                                <td>{file.type}</td>
+                                                <td>
+                                                    {file.type === 'file' ? (
+                                                        <a href={file.download_url} target="_blank" rel="noopener noreferrer">
+                                                            Скачать
+                                                        </a>
+                                                    ) : (
+                                                        <span>Папка</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <p>Файлов не найдено или произошла ошибка.</p>
+                            )
                         )}
                     </div>
-                </div>
-            )}
-
-            {branches.length > 0 && (
-                <div className="branches">
-                    <h3>Ветки репозитория: {selectedRepo}</h3>
-                    <ul>
-                        {branches.map((branch) => (
-                            <li key={branch.name}>{branch.name}</li>
-                        ))}
-                    </ul>
                 </div>
             )}
         </div>
